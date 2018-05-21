@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=0.5, maximum-scale=0.5, minimum-scale=0.5, user-scalable=no">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="full-screen" content="yes">
+    <link rel="stylesheet" href="lib/bootstrap-4.0.0-dist/css/bootstrap.css">
+    <title>星云秘密</title>
+    <style>
+        .input-group {
+            margin: 50px 20px;
+        }
+
+        .list-group-item.active {
+            background-color: #20a0ff;
+            border-color: #20a0ff;
+        }
+
+        .input-group input {
+            margin-right: 30px;
+            display: inline-block;
+        }
+
+        .sec {
+            margin-left: 15px;
+        }
+
+        .row {
+            margin-right: 0;
+        }
+
+        #secret_re {
+            margin: 30px 0 0 0;
+            width: 100%;
+        }
+
+        .ip2 {
+            margin-bottom: 10px;
+        }
+
+        #post {
+            margin: 30px 0;
+        }
+
+        #search_result,
+        #encodeT {
+            color: #20a0ff;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .container {
+            margin: 10% auto;
+        }
+
+        body {
+            background: #625f66;
+            color: #ffc107;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row clearfix">
+            <div class="col-md-12 column">
+                <div class="container-fluid">
+                    <div class="row-fluid">
+                        <div class="span12">
+                            <div class="list-group">
+                                <a class="list-group-item active">在星云链里存放你和他共享的秘密-----星云秘密</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group col-md-8">
+                    <input type="text" class="form-control" placeholder="解码你之前得到的加密片段" id="search_value" />
+                    <span class="input-group-btn">
+                        <button class="btn btn-info btn-search" id='search'>解码</button>
+                    </span>
+                    <div id="secret_re"> &nbsp; &nbsp; 你解析得到的秘密:
+                        <span id="search_result"></span>
+                    </div>
+
+                </div>
+
+
+                <div class="row clearfix sec">
+                    <div class="list-group col-md-12">
+                        <a class="list-group-item active">请输入你所要存放的秘密</a>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="input-group ip2" style="margin-top:20px ;margin-left:20px">
+                &nbsp; &nbsp; &nbsp; &nbsp;
+                <span class="input-group-addon">密码正文</span> &nbsp; &nbsp;
+                <textarea style="width:40%; height:100px;" id='postMes'>
+                </textarea>
+            </div>
+            <div style="text-align: right;margin-top:20px ">
+                &nbsp; &nbsp; &nbsp; &nbsp;
+                <button class="btn btn-info" id="post">存放秘密</button>
+            </div>
+            此处复制你的加密片段: &nbsp;
+            <p id="encodeT"></p>
+
+        </div>
+        <script src=lib/jquery-3.3.1.min.js></script>
+        <script src=lib/nebPay.js></script>
+        <script src=lib/bootstrap-4.0.0-dist/js/bootstrap.min.js></script>
+        <script src=lib/nebulas.js></script>
+        <script src=lib/base64.js></script>
+        <script>
+            "use strict";
+            var dappAddress = "n1wRQKytA7hEcRAchsoNoKhWiqhRAUEuV3i";
+
+            //here we use neb.js to call the "get" function to search from the Dictionary
+            var nebulas = require("nebulas"),
+                Account = nebulas.Account,
+                neb = new nebulas.Neb();
+            neb.setRequest(new nebulas.HttpRequest("https://testnet.nebulas.io"));
+
+            // 搜索功能: 查找Super-Dictionary 中有没有该词条
+            $("#search").click(function () {
+                // $("#search_value").val() 搜索框内的值
+                if ($("#search_value").val().length == 0) {
+                    alert("输入非法!");
+                    return false;
+                }
+                var from = Account.NewAccount().getAddressString();
+                console.log(from)
+                var value = "0";
+                var nonce = "0"
+                var gas_price = "1000000"
+                var gas_limit = "2000000"
+                var callFunction = "get";
+                var callArgs = "[\"" + $("#search_value").val() + "\"]"; //in the form of ["args"]
+                var contract = {
+                    "function": callFunction,
+                    "args": callArgs
+                }
+
+                neb.api.call(from, dappAddress, value, nonce, gas_price, gas_limit, contract).then(function (
+                    resp) {
+                    cbSearch(resp)
+                }).catch(function (err) {
+                    //cbSearch(err)
+                    console.log("error:" + err.message)
+                })
+
+            })
+
+            //return of search,
+            function cbSearch(resp) {
+                var result = resp.result ////resp is an object, resp.result is a JSON string
+                console.log("return of rpc call: " + JSON.stringify(result))
+
+                if (result === 'null') {
+                    //搜索结果为空
+                    alert('没有找到秘密或交易状态正在更新')
+                } else {
+                    //if result is not null, then it should be "return value" or "error message"
+                    try {
+                        result = JSON.parse(result)
+                        console.log('this', result)
+                    } catch (err) {
+                        //result is the error message
+                    }
+
+                    if (!!result.key) { //"return value"
+                        $(".add_banner").addClass("hide");
+                        $(".result_faile").addClass("hide");
+
+                        $("#search_banner").text($("#search_value").val())
+                        console.log("fds1", result.key)
+                        $("#search_result").text(base.decode(result.key))
+                        $("#search_result_author").text(result.author)
+
+                        $(".result_success").removeClass("hide");
+                    } else { //"error message"
+                        $(".add_banner").addClass("hide");
+                        $(".result_faile").addClass("hide");
+                        console.log("vb", base.decode(result.key), result.key)
+                        $("#search_banner").text($("#search_value").val())
+
+                        $("#search_result_author").text("")
+
+                        $(".result_success").removeClass("hide");
+                    }
+
+                }
+
+            }
+
+            // 添加信息功能: 像super-dictionary 中添加词条
+            $("#add").click(function () {
+                $(".result_faile").addClass("hide");
+                $(".add_banner").removeClass("hide");
+
+                $("#add_value").val("")
+            })
+
+            var NebPay = require("nebpay"); //https://github.com/nebulasio/nebPay
+            var nebPay = new NebPay();
+            var base = new Base64();
+            var serialNumber
+            var result2 = base.decode(
+                'eyJGdW5jdGlvbiI6InNhdmUiLCJBcmdzIjoiW1wiQ2lBZ0lDQWdJQ0FnSUNBZ0lDQWdJQ0RvdExubHBLZmx1WVhsdXFibGo1SGx0NmptdGFybHQ2am10YW95NUxpcTVxSzE2SktDNVlhSVwiLFwidW5kZWZpbmVkXCJdIn0='
+            );
+
+            $("#post").click(function () {
+
+                var result = base.encode($("#postMes").val());
+                $("#postMes").attr("data-attr", result)
+
+                console.log(result)
+
+                var to = dappAddress;
+                var value = "0";
+                var callFunction = "save"
+                var callArgs = "[\"" + result + "\",\"" + $("#add_value").val() + "\"]"
+
+                serialNumber = nebPay.call(to, value, callFunction, callArgs, { //使用nebpay的call接口去调用合约,
+                    listener: cbPush //设置listener, 处理交易返回信息
+                });
+
+                intervalQuery = setInterval(function (result) {
+                    funcIntervalQuery(result);
+                }, 5000);
+            });
+
+            var intervalQuery
+
+            function funcIntervalQuery(result) {
+                nebPay.queryPayInfo(serialNumber) //search transaction result from server (result upload to server by app)
+                    .then(function (resp) {
+                        console.log("tx result: " + resp) //resp is a JSON string
+                        var respObject = JSON.parse(resp)
+                        if (respObject.code === 0) {
+                            alert(`set ${$("#search_value").val()} succeed!`)
+                            console.log('发多少', base.decode($("#postMes").attr("data-attr")));
+                            $("#encodeT").text($("#postMes").attr("data-attr"))
+                            clearInterval(intervalQuery)
+                        }
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+            }
+
+            function cbPush(resp) {
+                console.log("response of push: " + JSON.stringify(resp))
+            }
+        </script>
+</body>
+
+</html>
